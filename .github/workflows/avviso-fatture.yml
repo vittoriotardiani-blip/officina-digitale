@@ -1,0 +1,27 @@
+name: Avviso fatture
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "src/fatture.js"
+      - "test/**"
+
+permissions:
+  pull-requests: write
+
+jobs:
+  avviso:
+    name: Avviso modifica al calcolo fatture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const marcatore = "<!-- avviso-fatture -->";
+            const testo = marcatore + "\n⚠️ Questa modifica tocca il calcolo delle fatture: va avvisato chi si occupa di amministrazione prima del merge.";
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const commenti = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            if (commenti.some((c) => c.body.includes(marcatore))) return;
+            await github.rest.issues.createComment({ owner, repo, issue_number, body: testo });
